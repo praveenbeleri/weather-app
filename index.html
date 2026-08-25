@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weatherly</title>
+  <meta name="description" content="Weatherly - Real-time weather forecasts with air quality, UV index, wind compass, and 5-day forecast." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Leaflet for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <div class="nav-left"></div>
+      <div class="nav-center">
+        <div class="search-trigger" id="searchTrigger">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <span class="search-placeholder">Search Here...</span>
+          <div class="search-shortcut">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
+            F
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <a href="https://github.com/SoubhagyaGhoshal/Weatherly" target="_blank" class="source-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Source Code
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Search Modal -->
+  <div class="search-modal-overlay" id="searchModal">
+    <div class="search-modal-box">
+      <div class="search-modal-input-row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchModalInput" placeholder="Search for a city..." autocomplete="off" />
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-empty" id="searchEmpty">No results found.</div>
+      <div class="search-hint">Press <kbd>Esc</kbd> to close</div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-wrapper">
+
+    <!-- API Key setup overlay (shown if no key) -->
+    <div class="api-setup" id="apiSetup">
+      <div class="api-setup-card">
+        <div class="api-setup-icon">🌤️</div>
+        <h2>Welcome to Weatherly</h2>
+        <p>Enter your <strong>OpenWeatherMap API key</strong> to get started with real-time weather data.</p>
+        <p class="api-hint">Get a free key at <a href="https://openweathermap.org/api" target="_blank">openweathermap.org</a></p>
+        <input type="text" id="apiKeySetupInput" placeholder="Paste your API key..." />
+        <button id="apiKeySetupBtn">Start Weatherly</button>
+        <button id="demoSetupBtn" class="demo-setup-btn">Use Demo Data</button>
+      </div>
+    </div>
+
+    <!-- Weather grid (hidden until loaded) -->
+    <div class="weather-grid" id="weatherGrid" style="display:none">
+
+      <!-- Row 1: Temperature | Air Pollution | Sunset | Wind -->
+      <div class="grid-row-top">
+
+        <!-- Temperature Card -->
+        <div class="card card-temperature" id="cardTemp">
+          <div class="temp-top">
+            <div>
+              <div class="temp-day" id="tempDay">Tuesday</div>
+              <div class="temp-city" id="tempCity">
+                <span id="tempCityName">—</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+              </div>
+            </div>
+            <div class="temp-time" id="tempTime">00:00:00</div>
+          </div>
+          <div class="temp-big" id="tempBig">—°</div>
+          <div class="temp-icon" id="tempIcon">
+            <!-- SVG icon -->
+          </div>
+          <div class="temp-desc" id="tempDesc">—</div>
+          <div class="temp-minmax" id="tempMinMax">Low: —°  High: —°</div>
+        </div>
+
+        <!-- Air Pollution Card -->
+        <div class="card card-air" id="cardAir">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            Air Pollution
+          </h2>
+          <div class="air-progress-wrap">
+            <div class="air-progress-track">
+              <div class="air-progress-bar" id="airProgressBar"></div>
+              <div class="air-progress-thumb" id="airProgressThumb"></div>
+            </div>
+          </div>
+          <p class="air-quality-text" id="airQualityText">—</p>
+        </div>
+
+        <!-- Sunset Card -->
+        <div class="card card-sunset" id="cardSunset">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>
+            Sunset
+          </h2>
+          <div class="sunset-time" id="sunsetTime">—</div>
+          <p class="sunrise-label">Sunrise: <span id="sunriseTime">—</span></p>
+        </div>
+
+        <!-- Wind Card -->
+        <div class="card card-wind" id="cardWind">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+            Wind
+          </h2>
+          <div class="wind-compass-wrap">
+            <div class="wind-compass" id="windCompass">
+              <div class="compass-ring">
+                <span class="compass-n">N</span>
+                <span class="compass-e">E</span>
+                <span class="compass-s">S</span>
+                <span class="compass-w">W</span>
+              </div>
+              <div class="compass-arrow-wrap" id="compassArrowWrap">
+                <div class="compass-arrow"></div>
+              </div>
+              <div class="compass-center-label" id="windSpeedLabel">— m/s</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end row-top -->
+
+      <!-- Row 2: Hourly | UV Index | Population -->
+      <div class="grid-row-mid">
+
+        <!-- Hourly Forecast Card (spans 2 cols) -->
+        <div class="card card-hourly" id="cardHourly">
+          <div class="hourly-items" id="hourlyItems">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- UV Index Card -->
+        <div class="card card-uv" id="cardUv">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            Uv Index
+          </h2>
+          <div class="uv-number" id="uvNumber">—</div>
+          <div class="uv-label-badge" id="uvLabelBadge"></div>
+          <div class="uv-bar-wrap">
+            <div class="uv-bar-gradient"></div>
+            <div class="uv-bar-thumb" id="uvBarThumb"></div>
+          </div>
+          <p class="uv-advice" id="uvAdvice">—</p>
+        </div>
+
+        <!-- Population Card -->
+        <div class="card card-population" id="cardPop">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Population
+          </h2>
+          <div class="population-number" id="populationNumber">—</div>
+          <p class="population-desc" id="populationDesc">Latest UN population data for <span id="popCityName">—</span>.</p>
+        </div>
+
+      </div><!-- end row-mid -->
+
+      <!-- Row 3: 5-Day Forecast | Feels Like | Humidity | Visibility | Pressure -->
+      <div class="grid-row-bot">
+
+        <!-- 5-Day Forecast -->
+        <div class="card card-fiveday" id="cardFiveDay">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            5-Day Forecast for <span id="fiveDayCityName">—</span>
+          </h2>
+          <div class="fiveday-list" id="fivedayList">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Feels Like -->
+        <div class="card card-small" id="cardFeels">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+            Feels Like
+          </h2>
+          <div class="stat-big" id="feelsLike">—°</div>
+          <p class="stat-desc" id="feelsLikeDesc">—</p>
+        </div>
+
+        <!-- Humidity -->
+        <div class="card card-small" id="cardHumidity">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            Humidity
+          </h2>
+          <div class="stat-big" id="humidityVal">—%</div>
+          <p class="stat-desc" id="humidityDesc">—</p>
+        </div>
+
+        <!-- Visibility -->
+        <div class="card card-small" id="cardVis">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Visibility
+          </h2>
+          <div class="stat-big" id="visibilityVal">— km</div>
+          <p class="stat-desc" id="visibilityDesc">—</p>
+        </div>
+
+        <!-- Pressure -->
+        <div class="card card-small" id="cardPressure">
+          <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/><path d="M12 6v6l4 2"/></svg>
+            Pressure
+          </h2>
+          <div class="stat-big" id="pressureVal">— hPa</div>
+          <p class="stat-desc" id="pressureDesc">—</p>
+        </div>
+
+      </div><!-- end row-bot -->
+
+      <!-- Row 4: Map | Top Large Cities -->
+      <div class="grid-row-map">
+
+        <!-- Leaflet Map -->
+        <div class="card card-map">
+          <div id="leafletMap"></div>
+        </div>
+
+        <!-- Top Large Cities -->
+        <div class="card card-cities" id="cardCities">
+          <h2 class="card-title cities-title">Top Large Cities</h2>
+          <div class="cities-list" id="citiesList">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- end weather-grid -->
+
+  </div><!-- end main-wrapper -->
+
+  <!-- Footer -->
+  <footer class="footer" id="appFooter" style="display:none">
+    <p>Made by <a href="https://github.com/SoubhagyaGhoshal" target="_blank" class="footer-name">Soubhagya</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
